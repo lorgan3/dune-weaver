@@ -47,12 +47,6 @@ class BaseLEDController(ABC):
         """Turn off the LED strip"""
         pass
 
-    @abstractmethod
-    def startup_indication(self):
-        """System startup indication"""
-        pass
-
-
 class MockLEDController(BaseLEDController):
     """Mock version of controller for development on non-Raspberry Pi systems"""
     
@@ -130,11 +124,6 @@ class MockLEDController(BaseLEDController):
             'mode': 'mock',
             'is_on': self.is_on
         }
-
-    def startup_indication(self):
-        """Mock version of startup indication"""
-        print("[MOCK] Performing startup indication: green -> blue -> red")
-        return True
 
 
 class RaspberryLEDController(BaseLEDController):
@@ -267,43 +256,6 @@ class RaspberryLEDController(BaseLEDController):
             'mode': 'raspberry',
             'is_on': self.is_on
         }
-
-    def startup_indication(self):
-        """System startup indication: smooth blinking in green, blue, and red"""
-        print("Starting LED startup indication...")
-        colors = [(0, 255, 0), (0, 0, 255), (255, 0, 0)]  # Green, blue, red
-        steps = 50  # Number of steps for smooth transition
-        delay = 0.02  # Delay between steps (in seconds)
-
-        # Turn on the strip if it's off
-        self.is_on = True
-        print("LED strip turned on")
-
-        for i, color in enumerate(colors):
-            print(f"Showing color {i+1}/3: RGB{color}")
-            # Smooth fade in
-            for i in range(steps):
-                brightness = int((i / steps) * 255)
-                r = int((color[0] / 255) * brightness)
-                g = int((color[1] / 255) * brightness)
-                b = int((color[2] / 255) * brightness)
-                self.set_color((r, g, b))
-                time.sleep(delay)
-            
-            # Smooth fade out
-            for i in range(steps, -1, -1):
-                brightness = int((i / steps) * 255)
-                r = int((color[0] / 255) * brightness)
-                g = int((color[1] / 255) * brightness)
-                b = int((color[2] / 255) * brightness)
-                self.set_color((r, g, b))
-                time.sleep(delay)
-
-        # Turn off the strip after indication
-        self.set_color((0, 0, 0))
-        print("LED startup indication completed")
-        return True
-
 
 def create_led_controller(led_count=47, **kwargs):
     """Factory method to create appropriate controller"""
