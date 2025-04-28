@@ -279,7 +279,7 @@ class LotusLEDController(BaseLEDController):
         return True
 
     async def set_brightness(self, brightness):
-        await self.send_command_once(self.commands['set_brightness <brightness>'](brightness/4), self.name)
+        await self.send_command_once(self.commands['set_brightness <brightness>'](int(brightness/4)), self.name)
         self.brightness = brightness
         return True
 
@@ -313,7 +313,7 @@ class LotusLEDController(BaseLEDController):
             'current_animation': self.current_animation,
             'brightness': self.brightness,
             'animation_speed': self.animation_speed,
-            'mode': 'raspberry',
+            'mode': 'lotus',
             'is_on': self.is_on
         }
 
