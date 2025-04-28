@@ -19,6 +19,8 @@ import sys
 import asyncio
 from contextlib import asynccontextmanager
 from modules.led.led_controller import LEDController, effect_idle
+from led_controller import create_led_controller
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -86,6 +88,17 @@ class SpeedRequest(BaseModel):
 class WLEDRequest(BaseModel):
     wled_ip: Optional[str] = None
 
+class LEDColorRequest(BaseModel):
+    color: List[int]
+
+class LEDSpeedRequest(BaseModel):
+    speed: int
+
+class LEDBrightnessRequest(BaseModel):
+    brightness: int
+
+class LEDPowerRequest(BaseModel):
+    state: bool
 class DeletePlaylistRequest(BaseModel):
     playlist_name: str
 
@@ -542,6 +555,61 @@ async def skip_pattern():
     state.skip_requested = True
     return {"success": True}
 
+# Initialize LED controller
+led_controller = create_led_controller(led_count=47, led_pin=18)  # Настройте количество светодиодов и пин
+
+# LED strip control endpoints
+@app.get("/api/led/status")
+async def get_led_status():
+    """Get current LED strip status."""
+    try:
+        status = led_controller.get_status()
+        return status
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to get LED status")
+
+@app.post('/api/led/color')
+async def set_led_color(request: LEDColorRequest):
+    """Set LED strip color."""
+    try:
+        color = tuple(request.color)  # Expect [R,G,B]
+        led_controller.set_color(color)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid led color value")
+
+@app.post('/api/led/brightness')
+def set_led_brightness(request: LEDBrightnessRequest):
+    """Set LED strip brightness."""
+    try:
+        brightness = int(request.brightness)  # 0-255
+        led_controller.set_brightness(brightness)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid led brightness value")
+
+@app.post('/api/led/speed')
+def set_led_speed(request: LEDSpeedRequest):
+    """Set LED animation speed."""
+    try:
+        speed = int(request.speed)  # 1-100
+        led_controller.set_animation_speed(speed)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid led speed value")
+
+@app.post('/api/led/power')
+def set_led_power(request: LEDPowerRequest):
+    """Set LED strip power state."""
+    try:
+        if request.state:
+            led_controller.turn_on()
+        else:
+            led_controller.turn_off()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid led power value")
+
 def signal_handler(signum, frame):
     """Handle shutdown signals gracefully but forcefully."""
     logger.info("Received shutdown signal, cleaning up...")
@@ -563,7 +631,6 @@ def entrypoint():
     import uvicorn
     logger.info("Starting FastAPI server on port 8080...")
     uvicorn.run(app, host="0.0.0.0", port=8080, workers=1)  # Set workers to 1 to avoid multiple signal handlers
-
 
 if __name__ == "__main__":
     entrypoint()
