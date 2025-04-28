@@ -20,6 +20,13 @@ import asyncio
 from contextlib import asynccontextmanager
 from modules.led.led_controller import LEDController, effect_idle
 from led_controller import create_led_controller
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Load environment variables
+BASE_DIR = Path(__file__).resolve().parent # Go up to project root
+env_path = os.path.join(BASE_DIR, '.env')
+load_dotenv(env_path)
 
 # Configure logging
 logging.basicConfig(
