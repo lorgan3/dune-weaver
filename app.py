@@ -580,39 +580,39 @@ async def set_led_color(request: LEDColorRequest):
     """Set LED strip color."""
     try:
         color = tuple(request.color)  # Expect [R,G,B]
-        led_controller.set_color(color)
+        await led_controller.set_color(color)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Invalid led color value")
 
 @app.post('/api/led/brightness')
-def set_led_brightness(request: LEDBrightnessRequest):
+async def set_led_brightness(request: LEDBrightnessRequest):
     """Set LED strip brightness."""
     try:
         brightness = int(request.brightness)  # 0-255
-        led_controller.set_brightness(brightness)
+        await led_controller.set_brightness(brightness)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Invalid led brightness value")
 
 @app.post('/api/led/speed')
-def set_led_speed(request: LEDSpeedRequest):
+async def set_led_speed(request: LEDSpeedRequest):
     """Set LED animation speed."""
     try:
         speed = int(request.speed)  # 1-100
-        led_controller.set_animation_speed(speed)
+        await led_controller.set_animation_speed(speed)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Invalid led speed value")
 
 @app.post('/api/led/power')
-def set_led_power(request: LEDPowerRequest):
+async def set_led_power(request: LEDPowerRequest):
     """Set LED strip power state."""
     try:
         if request.state:
-            led_controller.turn_on()
+            await led_controller.turn_on()
         else:
-            led_controller.turn_off()
+            await led_controller.turn_off()
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Invalid led power value")

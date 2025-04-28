@@ -3,47 +3,43 @@ import time
 import threading
 import colorsys
 from abc import ABC, abstractmethod
+import os
 
 class BaseLEDController(ABC):
     """Base class for LED strip controller"""
     
     @abstractmethod
-    def set_color(self, color):
+    async def set_color(self, color):
         """Set color for all LEDs"""
         pass
     
     @abstractmethod
-    def set_brightness(self, brightness):
+    async def set_brightness(self, brightness):
         """Set brightness (0-255)"""
         pass
     
     @abstractmethod
-    def start_animation(self, animation_type):
+    async def start_animation(self, animation_type):
         """Start animation"""
         pass
     
     @abstractmethod
-    def stop_current_animation(self):
-        """Stop current animation"""
-        pass
-    
-    @abstractmethod
-    def set_animation_speed(self, speed):
+    async def set_animation_speed(self, speed):
         """Set animation speed (1-100)"""
         pass
     
     @abstractmethod
-    def get_status(self):
+    async def get_status(self):
         """Get current status"""
         pass
 
     @abstractmethod
-    def turn_on(self):
+    async def turn_on(self):
         """Turn on the LED strip"""
         pass
 
     @abstractmethod
-    def turn_off(self):
+    async def turn_off(self):
         """Turn off the LED strip"""
         pass
 
@@ -77,7 +73,6 @@ class MockLEDController(BaseLEDController):
             print(f"[MOCK] Error: unknown animation type {animation_type}")
             return False
         
-        self.stop_current_animation()
         self.current_animation = animation_type
         print(f"[MOCK] Animation started: {animation_type}")
         
@@ -89,14 +84,6 @@ class MockLEDController(BaseLEDController):
         self.stop_animation = False
         self.animation_thread = threading.Thread(target=mock_animation)
         self.animation_thread.start()
-        return True
-    
-    def stop_current_animation(self):
-        if self.animation_thread and self.animation_thread.is_alive():
-            self.stop_animation = True
-            self.animation_thread.join()
-            print("[MOCK] Animation stopped")
-        self.current_animation = None
         return True
     
     def set_animation_speed(self, speed):
@@ -111,7 +98,6 @@ class MockLEDController(BaseLEDController):
 
     def turn_off(self):
         self.is_on = False
-        self.stop_current_animation()
         print("[MOCK] LED strip turned off")
         return True
 
@@ -256,14 +242,80 @@ class RaspberryLEDController(BaseLEDController):
             'mode': 'raspberry',
             'is_on': self.is_on
         }
+    
+class LotusLEDController(BaseLEDController):
+    """Real controller version for Lotus led strips"""
+    
+    def __init__(self):
+        try:
+            from modules import lotus
+            self.send_command_once = lotus.send_command_once
+            self.commands = lotus.COMMANDS
+            self.effects = lotus.EFFECTS
+            self.name = 'ELK-BLEDOB'
+
+            self.current_animation = None
+            self.animation_speed = 0
+            self.brightness = 64
+            self.is_on = False
+            print(f"Initialized Lotus LED controller")
+        except Exception as e:
+            raise Exception(f"Lotus LED controller initialization error: {str(e)}")
+
+    async def set_color(self, color):
+        await self.send_command_once(self.commands['set_color <r> <g> <b>'](color[0], color[1], color[2]), self.name)
+        self.last_color = color
+        return True
+
+    async def set_brightness(self, brightness):
+        await self.send_command_once(self.commands['set_brightness <brightness>'](brightness/4), self.name)
+        self.brightness = brightness
+        return True
+
+    async def start_animation(self, animation_type):
+        await  self.send_command_once(self.commands['set_effect <effect>'](animation_type), self.name)
+        return True
+
+    async def set_animation_speed(self, speed):
+        await self.send_command_once(self.commands['set_effect_speed <speed>'](speed), self.name)
+        self.animation_speed = speed
+        return True
+
+    async def turn_on(self):
+        await self.send_command_once(self.commands['turn_on'](), self.name)
+        self.is_on = True
+        return True
+
+    async def turn_off(self):
+        await self.send_command_once(self.commands['turn_off'](), self.name)
+        self.is_on = False
+        return True
+
+    def get_status(self):
+        return {
+            'current_animation': self.current_animation,
+            'brightness': self.brightness,
+            'animation_speed': self.animation_speed,
+            'mode': 'raspberry',
+            'is_on': self.is_on
+        }
 
 def create_led_controller(led_count=47, **kwargs):
     """Factory method to create appropriate controller"""
-    if platform.system() == 'Linux' and platform.machine().startswith('arm'):
+    led_controller = os.getenv('LED_CONTROLLER')
+    print(f"LED controller: {led_controller}")
+    if led_controller == 'raspberry':
         try:
             return RaspberryLEDController(led_count=led_count, **kwargs)
         except Exception as e:
             print(f"Error creating Raspberry Pi controller: {e}")
+            print("Switching to mock version...")
+            return MockLEDController(led_count=led_count)
+    elif led_controller == 'lotus':
+        try:
+            return LotusLEDController()
+        except Exception as e:
+            print(f"Error creating Lotus controller: {e}")
             print("Switching to mock version...")
             return MockLEDController(led_count=led_count)
     else:
