@@ -185,9 +185,6 @@ function setLEDPower(state) {
         });
 }
 
-// Update LED status every 5 seconds
-setInterval(updateLEDStatus, 5000);
-
 // Initial status update
 document.addEventListener('DOMContentLoaded', function () {
     updateLEDStatus();
