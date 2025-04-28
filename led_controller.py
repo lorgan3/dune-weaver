@@ -27,9 +27,14 @@ class BaseLEDController(ABC):
     async def set_animation_speed(self, speed):
         """Set animation speed (1-100)"""
         pass
+
+    @abstractmethod
+    def get_animations(self):
+        """Get list of available animations"""
+        pass
     
     @abstractmethod
-    async def get_status(self):
+    def get_status(self):
         """Get current status"""
         pass
 
@@ -90,6 +95,9 @@ class MockLEDController(BaseLEDController):
         self.animation_speed = max(1, min(100, speed))
         print(f"[MOCK] Animation speed set to: {self.animation_speed}")
         return True
+    
+    def get_animations(self):
+        return ['rainbow', 'wave', 'fade']
     
     def turn_on(self):
         self.is_on = True
@@ -218,6 +226,9 @@ class RaspberryLEDController(BaseLEDController):
     def set_animation_speed(self, speed):
         self.animation_speed = max(1, min(100, speed))
         return True
+    
+    def get_animations(self):
+        return ['rainbow', 'wave', 'fade']
 
     def turn_on(self):
         self.is_on = True
@@ -273,13 +284,19 @@ class LotusLEDController(BaseLEDController):
         return True
 
     async def start_animation(self, animation_type):
-        await  self.send_command_once(self.commands['set_effect <effect>'](animation_type), self.name)
+        if animation_type not in self.effects:
+            return False
+
+        await self.send_command_once(self.commands['set_effect <effect>'](self.effects[animation_type]), self.name)
         return True
 
     async def set_animation_speed(self, speed):
         await self.send_command_once(self.commands['set_effect_speed <speed>'](speed), self.name)
         self.animation_speed = speed
         return True
+    
+    def get_animations(self):
+        return list(self.effects.keys())
 
     async def turn_on(self):
         await self.send_command_once(self.commands['turn_on'](), self.name)

@@ -106,6 +106,10 @@ class LEDBrightnessRequest(BaseModel):
 
 class LEDPowerRequest(BaseModel):
     state: bool
+
+class LEDAnimationRequest(BaseModel):
+    animation: str
+    
 class DeletePlaylistRequest(BaseModel):
     playlist_name: str
 
@@ -574,6 +578,27 @@ async def get_led_status():
         return status
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to get LED status")
+    
+@app.get("/api/led/animations")
+async def get_animations():
+    """Get current LED strip animations."""
+    try:
+        animations = led_controller.get_animations()
+        print(animations)
+        return {
+            'animations': animations
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to get LED animations")
+
+@app.post('/api/led/animation')
+async def set_led_animation(request: LEDAnimationRequest):
+    """Set LED strip animation."""
+    try:
+        await led_controller.start_animation(request.animation)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid led animation value")
 
 @app.post('/api/led/color')
 async def set_led_color(request: LEDColorRequest):

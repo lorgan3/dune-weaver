@@ -33,6 +33,31 @@ function updateLEDStatus() {
         });
 }
 
+function updateLEDAnimations() {
+    fetch('/api/led/animations')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('led_animation');
+            select.innerHTML = '';
+
+            const option = document.createElement('option');
+            option.value = 'none';
+            option.textContent = 'None';
+            select.appendChild(option);
+
+            data.animations.forEach(animation => {
+                const option = document.createElement('option');
+                option.value = animation;
+                option.textContent = animation;
+                select.appendChild(option);
+            });
+           
+        })
+        .catch(error => {
+            console.error('Error fetching LED animations:', error);
+        });
+}
+
 function setLEDColor(colorHex) {
     const rgb = hexToRgb(colorHex);
     fetch('/api/led/color', {
@@ -166,4 +191,5 @@ setInterval(updateLEDStatus, 5000);
 // Initial status update
 document.addEventListener('DOMContentLoaded', function () {
     updateLEDStatus();
+    updateLEDAnimations();
 });
